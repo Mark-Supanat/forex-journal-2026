@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOREX — Road to $3000 (Google Sheets)</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0b0f;--bg2:#111318;--bg3:#181b23;--bg4:#1e2230;--border:#2a2f42;--border2:#3a4058;--text:#e8eaf0;--text2:#8b91a8;--text3:#555c78;--indigo:#6366f1;--indigo2:#818cf8;--indigo3:#4338ca;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;--teal:#14b8a6;--font-display:'Space Mono',monospace;--font-body:'DM Sans',sans-serif;}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;line-height:1.5;min-height:100vh}
+
+/* HEADER */
+.header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;background:rgba(10,11,15,.96);backdrop-filter:blur(12px)}
+.header-logo{font-family:var(--font-display);font-size:13px;color:var(--indigo2);letter-spacing:.08em}
+.header-logo span{color:var(--text3)}
+.header-right{display:flex;align-items:center;gap:10px}
+.sync-status{font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);color:var(--text3);font-family:var(--font-display)}
+.sync-status.ok{border-color:#16a34a55;color:#4ade80;background:#14532d22}
+.sync-status.err{border-color:#b91c1c55;color:#f87171;background:#450a0a22}
+.sync-status.loading{border-color:#4338ca55;color:#818cf8;background:#1e1b4b22}
+.tabs{display:flex;gap:2px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:3px}
+.tab{padding:5px 16px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);border:none;background:none;font-family:var(--font-body);transition:all .15s}
+.tab.active{background:var(--indigo3);color:#c7d2fe}
+.tab:hover:not(.active){background:var(--bg4);color:var(--text)}
+
+/* SETUP BANNER */
+.setup-banner{margin:14px 20px;background:linear-gradient(135deg,#1a1a2e,#0f0f1a);border:1px solid #4338ca88;border-radius:10px;padding:16px 20px}
+.setup-banner h3{font-family:var(--font-display);font-size:12px;color:#818cf8;margin-bottom:10px}
+.setup-step{display:flex;gap:10px;margin-bottom:8px;align-items:flex-start}
+.step-num{background:#312e81;color:#c7d2fe;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;font-family:var(--font-display)}
+.step-text{font-size:12px;color:var(--text2);line-height:1.6}
+.step-text code{background:#1e2230;color:#a5b4fc;padding:1px 6px;border-radius:4px;font-family:var(--font-display);font-size:11px}
+.url-input-wrap{display:flex;gap:8px;margin-top:10px}
+.url-input{flex:1;background:var(--bg2);border:1px solid var(--indigo3);color:var(--text);font-size:12px;font-family:var(--font-display);padding:8px 12px;border-radius:8px;outline:none}
+.url-input:focus{border-color:var(--indigo2)}
+.url-input::placeholder{color:var(--text3)}
+.btn-connect{padding:8px 18px;background:var(--indigo3);border:1px solid #4338ca;color:#c7d2fe;font-size:12px;font-family:var(--font-body);border-radius:8px;cursor:pointer;font-weight:500;transition:all .15s}
+.btn-connect:hover{background:#3730a3}
+
+/* MM BANNER */
+.mm-banner{margin:14px 20px;background:linear-gradient(135deg,#1e1b4b,#1a1a2e);border:1px solid #4338ca55;border-radius:10px;padding:10px 14px}
+.mm-title{font-family:var(--font-display);font-size:10px;color:#818cf8;letter-spacing:.1em;margin-bottom:6px}
+.mm-rules{display:flex;flex-wrap:wrap;gap:5px}
+.mm-rule{background:#312e8155;color:#a5b4fc;padding:2px 8px;border-radius:4px;font-size:11px;border:1px solid #4338ca44}
+
+/* DASHBOARD */
+.dash-wrap{padding:0 20px 14px}
+.dash-label{font-family:var(--font-display);font-size:9px;color:var(--text3);letter-spacing:.12em;margin-bottom:8px}
+.dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;transition:border-color .2s}
+.kpi:hover{border-color:var(--border2)}
+.kpi-label{font-size:10px;color:var(--text3);font-weight:500;letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px}
+.kpi-value{font-family:var(--font-display);font-size:18px;font-weight:700}
+.kpi-value.pos{color:var(--green)}
+.kpi-value.neg{color:var(--red)}
+.kpi-value.warn{color:var(--amber)}
+.kpi-value.info{color:var(--indigo2)}
+.kpi-sub{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* TOOLBAR */
+.toolbar{padding:0 20px 10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+select,input[type=text]{background:var(--bg2);border:1px solid var(--border);color:var(--text);font-size:11px;font-family:var(--font-body);padding:4px 8px;border-radius:7px;height:30px;outline:none;transition:border-color .15s}
+select:focus,input[type=text]:focus{border-color:var(--indigo)}
+select option{background:var(--bg2)}
+.btn{padding:4px 12px;height:30px;border:1px solid var(--border2);border-radius:7px;background:var(--bg3);color:var(--text);font-size:11px;font-family:var(--font-body);cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--bg4);border-color:var(--indigo)}
+.btn-primary{background:var(--indigo3);border-color:#4338ca;color:#c7d2fe}
+.btn-primary:hover{background:#3730a3}
+.btn-save{background:#14532d;border-color:#16a34a55;color:#4ade80}
+.btn-save:hover{background:#166534}
+.btn-reload{background:#1e1b4b;border-color:#4338ca55;color:#818cf8}
+.btn-reload:hover{background:#312e81}
+.row-count{font-size:11px;color:var(--text3)}
+
+/* TABLE */
+.table-outer{padding:0 20px 24px}
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px}
+table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:1200px}
+thead th{background:var(--bg3);color:var(--text3);font-weight:500;font-size:9px;letter-spacing:.06em;padding:8px 8px;border-bottom:1px solid var(--border);white-space:nowrap;text-align:left;text-transform:uppercase}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--bg3)}
+td{padding:6px 8px;color:var(--text);vertical-align:middle}
+td[contenteditable=true]{outline:none;cursor:text}
+td[contenteditable=true]:focus{background:rgba(99,102,241,.12);box-shadow:inset 0 0 0 1.5px var(--indigo)}
+td.dirty{background:rgba(245,158,11,.06)!important}
+.delete-col{width:30px;text-align:center}
+.del-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:2px 4px;border-radius:4px;line-height:1}
+.del-btn:hover{color:var(--red);background:rgba(239,68,68,.1)}
+.badge{display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:600;font-family:var(--font-display);letter-spacing:.04em;cursor:text;outline:none}
+.badge:focus{box-shadow:0 0 0 1.5px var(--indigo)}
+.badge-A{background:#14532d44;color:#86efac;border:1px solid #16a34a55}
+.badge-B{background:#1e3a5f44;color:#93c5fd;border:1px solid #1d4ed855}
+.badge-C{background:#78350f44;color:#fcd34d;border:1px solid #d9770655}
+.badge-S{background:#4a1d9644;color:#d8b4fe;border:1px solid #7c3aed55}
+.badge-W{background:#14532d44;color:#4ade80;border:1px solid #16a34a55}
+.badge-L{background:#450a0a44;color:#f87171;border:1px solid #b91c1c55}
+.badge-D{background:#1c1c2244;color:#94a3b8;border:1px solid #47506055}
+.badge-TP{background:#042c5344;color:#7dd3fc;border:1px solid #0369a155}
+.badge-SL{background:#450a0a44;color:#f87171;border:1px solid #b91c1c55}
+.badge-SP{background:#2d165744;color:#c4b5fd;border:1px solid #7c3aed55}
+.badge-BUY{background:#052e1644;color:#4ade80;border:1px solid #16a34a55}
+.badge-SELL{background:#450a0a44;color:#f87171;border:1px solid #b91c1c55}
+.pnl-pos{color:var(--green);font-family:var(--font-display);font-size:11px}
+.pnl-neg{color:var(--red);font-family:var(--font-display);font-size:11px}
+.sym-xau{color:#fbbf24;font-weight:600}
+.sym-xag{color:#94a3b8;font-weight:600}
+.sym-btc{color:#fb923c;font-weight:600}
+.sym-usd{color:#14b8a6;font-weight:600}
+.sym-oil{color:#84cc16;font-weight:600}
+.sym-other{color:var(--text2);font-weight:500}
+.num{font-family:var(--font-display);font-size:11px}
+.chart-cell{position:relative}
+.chart-input{width:100%;border:none;background:transparent;color:var(--text3);font-size:10px;font-family:var(--font-body);outline:none;min-width:90px}
+.chart-input::placeholder{color:var(--text3)}
+.chart-link{color:var(--indigo2);text-decoration:none;font-size:10px;display:flex;align-items:center;gap:3px;cursor:pointer;margin-bottom:1px}
+.chart-link:hover{text-decoration:underline}
+.setup-cell{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text2);font-size:11px}
+.note-cell{max-width:140px;font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* LOADING */
+.loading-overlay{display:none;position:fixed;inset:0;background:rgba(10,11,15,.8);z-index:9998;align-items:center;justify-content:center;flex-direction:column;gap:12px}
+.loading-overlay.show{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--indigo2);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:var(--font-display);font-size:12px;color:var(--indigo2)}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:8px;font-size:12px;font-family:var(--font-display);z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.ok{background:#14532d;color:#4ade80;border:1px solid #16a34a55}
+.toast.err{background:#450a0a;color:#f87171;border:1px solid #b91c1c55}
+.toast.info{background:#1e1b4b;color:#818cf8;border:1px solid #4338ca55}
+
+/* PREVIEW */
+#globalPreview{display:none;position:fixed;z-index:9999;width:360px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:8px;pointer-events:none}
+#globalPreview img{width:100%;border-radius:6px;display:block}
+#previewUrl{font-size:9px;color:var(--text3);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--font-display)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">กำลังโหลดข้อมูล...</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- PREVIEW -->
+<div id="globalPreview"><img id="previewImg" src="" alt=""><div id="previewUrl"></div></div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">FOREX <span>//</span> ROAD TO $3000</div>
+  <div class="header-right">
+    <div class="sync-status loading" id="syncStatus">⏳ ยังไม่เชื่อมต่อ</div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('q2')">Q2 2026</button>
+      <button class="tab" onclick="switchTab('q1')">Q1 2026</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP BANNER (แสดงเฉพาะตอนยังไม่ได้ใส่ URL) -->
+<div class="setup-banner" id="setupBanner">
+  <h3>🔗 เชื่อมต่อ Google Sheets</h3>
+  <div class="setup-step"><div class="step-num">1</div><div class="step-text">เปิด Google Sheet ของคุณ → คลิก <code>Extensions</code> → <code>Apps Script</code></div></div>
+  <div class="setup-step"><div class="step-num">2</div><div class="step-text">วางโค้ดจากไฟล์ <code>Code.gs</code> ที่แนบมาให้ → กด <code>Save</code></div></div>
+  <div class="setup-step"><div class="step-num">3</div><div class="step-text">คลิก <code>Deploy</code> → <code>New deployment</code> → เลือก type: <code>Web app</code> → Who has access: <code>Anyone</code> → กด <code>Deploy</code></div></div>
+  <div class="setup-step"><div class="step-num">4</div><div class="step-text">คัดลอก <code>Web app URL</code> ที่ได้มาวางด้านล่างนี้</div></div>
+  <div class="url-input-wrap">
+    <input class="url-input" id="scriptUrl" placeholder="https://script.google.com/macros/s/xxxxxxxx/exec" type="text">
+    <button class="btn-connect" onclick="saveAndConnect()">เชื่อมต่อ</button>
+  </div>
+</div>
+
+<!-- MM BANNER -->
+<div class="mm-banner">
+  <div class="mm-title">⚠ TRADING MM RULES — #218510791</div>
+  <div class="mm-rules">
+    <span class="mm-rule">Max Drawdown 30%</span>
+    <span class="mm-rule">Max Risk/Trade 5%</span>
+    <span class="mm-rule">Max Lot 0.10</span>
+    <span class="mm-rule">Monthly Target +5%</span>
+    <span class="mm-rule">Weekly Loss $20-30</span>
+    <span class="mm-rule">Grade A–B Only</span>
+    <span class="mm-rule">No FOMO</span>
+    <span class="mm-rule">No Counter-Trend</span>
+    <span class="mm-rule">No News Trading</span>
+    <span class="mm-rule">1 Pair at a time</span>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="dash-wrap">
+  <div class="dash-label">ACCOUNT SUMMARY</div>
+  <div class="dashboard" id="dashboard"></div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <select id="fSym" onchange="renderTable()"><option value="">All Symbols</option><option>XAGUSD</option><option>XAUUSD</option><option>BTCUSDT</option><option>USDJPY</option><option>EURUSD</option><option>USOIL</option><option>NDX</option><option>GBPUSD</option></select>
+  <select id="fGrade" onchange="renderTable()"><option value="">All Grades</option><option>A</option><option>B</option><option>C</option></select>
+  <select id="fWL" onchange="renderTable()"><option value="">Win/Loss</option><option value="W">Win</option><option value="L">Loss</option><option value="D">Draw</option></select>
+  <select id="fPos" onchange="renderTable()"><option value="">Position</option><option>BUY</option><option>SELL</option></select>
+  <select id="fSess" onchange="renderTable()"><option value="">Session</option><option>ASIA</option><option>LONDON</option><option>US</option></select>
+  <input type="text" id="fSearch" placeholder="🔍 ค้นหา..." onkeyup="renderTable()" style="flex:1;min-width:140px;max-width:200px">
+  <button class="btn btn-reload" onclick="loadTrades()">↻ Reload</button>
+  <button class="btn btn-save" onclick="saveAllToSheet()" id="btnSave">💾 Save to Sheet</button>
+  <button class="btn btn-primary" onclick="addRow()">＋ เพิ่มแถว</button>
+  <span class="row-count" id="rowcount"></span>
+</div>
+
+<!-- TABLE -->
+<div class="table-outer">
+<div class="table-wrap">
+<table>
+<thead><tr>
+  <th class="delete-col"></th>
+  <th>#</th><th>Date Open</th><th>Date Close</th><th>Dur</th>
+  <th>Symbol</th><th>Pos</th><th>Lot</th><th>Order</th>
+  <th>Enter</th><th>Session</th><th>Exit</th><th>Exit Type</th>
+  <th>PNL%</th><th>PNL$</th><th>Grade</th>
+  <th>Setup</th><th>Chart↑</th><th>Chart↓</th>
+  <th>W/L</th><th>Grade F.</th><th>Note</th>
+</tr></thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+</div>
+
+<script>
+// ============================================
+// CONFIG — URL จะถูกบันทึกใน localStorage
+// ============================================
+let SCRIPT_URL = localStorage.getItem('forex_script_url') || '';
+let currentTab = 'q2';
+let trades = [];
+let dirtyRows = new Set();
+
+// แปลง date string ยาวๆ → yyyy-MM-dd (ต้องนิยามก่อน loadTrades)
+function cleanDate(raw) {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  const m1 = s.match(/(\d{4}-\d{2}-\d{2})/);
+  if (m1) return m1[1];
+  const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+  const m2 = s.match(/\w+\s+(\w+)\s+(\d+)\s+(\d{4})/);
+  if (m2 && months[m2[1]]) return m2[3]+'-'+months[m2[1]]+'-'+m2[2].padStart(2,'0');
+  try { const d=new Date(s); if(!isNaN(d)) return d.toISOString().slice(0,10); } catch(e){}
+  return s;
+} // แถวที่มีการแก้ไขยังไม่ได้ save
+
+// โหลด URL จาก localStorage ถ้ามี
+window.onload = function() {
+  if (SCRIPT_URL) {
+    document.getElementById('scriptUrl').value = SCRIPT_URL;
+    document.getElementById('setupBanner').style.display = 'none';
+    loadTrades();
+  } else {
+    renderDashboard();
+    renderTable();
+  }
+};
+
+// ============================================
+// เชื่อมต่อ — บันทึก URL แล้วโหลด
+// ============================================
+function saveAndConnect() {
+  const url = document.getElementById('scriptUrl').value.trim();
+  if (!url || !url.startsWith('https://script.google.com')) {
+    showToast('❌ URL ไม่ถูกต้อง ต้องขึ้นต้นด้วย https://script.google.com', 'err');
+    return;
+  }
+  SCRIPT_URL = url;
+  localStorage.setItem('forex_script_url', url);
+  document.getElementById('setupBanner').style.display = 'none';
+  loadTrades();
+}
+
+// ============================================
+// โหลดข้อมูลจาก Google Sheets
+// ============================================
+async function loadTrades() {
+  if (!SCRIPT_URL) { showToast('⚠ กรุณาใส่ Script URL ก่อน', 'info'); return; }
+
+  showLoading('กำลังโหลดจาก Google Sheets...');
+  setSyncStatus('loading', '⏳ กำลังโหลด...');
+
+  try {
+    const url = `${SCRIPT_URL}?action=getTrades&quarter=${currentTab}&t=${Date.now()}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.error) throw new Error(data.error);
+
+    trades = (data.trades || []).map(t => ({...t, dateOpen: cleanDate(t.dateOpen), dateClose: cleanDate(t.dateClose)}));
+    dirtyRows.clear();
+
+    setSyncStatus('ok', `✅ โหลดแล้ว ${trades.length} รายการ`);
+    showToast(`✅ โหลด ${trades.length} trades จาก Google Sheets`, 'ok');
+    renderDashboard();
+    renderTable();
+
+  } catch (err) {
+    setSyncStatus('err', '❌ เชื่อมต่อไม่ได้');
+    showToast('❌ Error: ' + err.message, 'err');
+    console.error(err);
+  } finally {
+    hideLoading();
+  }
+}
+
+// ============================================
+// บันทึก cell เดียว (auto-save เมื่อ blur)
+// ============================================
+async function saveCell(actualRow, field, value) {
+  if (!SCRIPT_URL) return;
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'updateTrade',
+        quarter: currentTab,
+        rowIndex: actualRow,
+        field: field,
+        value: value
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    showToast('💾 บันทึกแล้ว', 'ok', 1500);
+  } catch (err) {
+    showToast('❌ บันทึกไม่สำเร็จ: ' + err.message, 'err');
+  }
+}
+
+// ============================================
+// บันทึกทั้งหมด
+// ============================================
+async function saveAllToSheet() {
+  if (!SCRIPT_URL) { showToast('⚠ ยังไม่ได้เชื่อมต่อ', 'info'); return; }
+  if (dirtyRows.size === 0) { showToast('ℹ ไม่มีการแก้ไขใหม่', 'info'); return; }
+
+  showLoading(`กำลังบันทึก ${dirtyRows.size} แถว...`);
+
+  try {
+    const toSave = trades.filter(t => t._row && dirtyRows.has(t._row));
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'saveAllTrades', quarter: currentTab, trades: toSave })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    dirtyRows.clear();
+    showToast(`✅ บันทึก ${data.updated} แถวสำเร็จ`, 'ok');
+    renderTable();
+
+  } catch (err) {
+    showToast('❌ บันทึกไม่สำเร็จ: ' + err.message, 'err');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ============================================
+// เพิ่มแถวใหม่
+// ============================================
+async function addRow() {
+  const newNo = trades.length > 0 ? Math.max(...trades.map(t => t.no)) + 1 : 1;
+  const today = new Date().toISOString().slice(0, 10);
+  const newTrade = {
+    no: newNo, dateOpen: today, dateClose: today, dur: '',
+    sym: 'XAUUSD', pos: 'BUY', lot: '0.01', order: 'Market',
+    enter: '0', session: 'ASIA', exit: '0', tpsl: '',
+    pnlPct: 0, pnlUsd: 0, grade: 'B', setup: '',
+    chartEnter: '', chartExit: '', wl: '', gradeFinal: '', note: ''
+  };
+
+  if (SCRIPT_URL) {
+    showLoading('กำลังเพิ่มแถว...');
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'addTrade', quarter: currentTab, trade: newTrade })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      newTrade._row = data.newRow;
+      showToast('✅ เพิ่มแถวใน Google Sheets แล้ว', 'ok');
+    } catch (err) {
+      showToast('❌ ' + err.message, 'err');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  trades.push(newTrade);
+  renderTable();
+  renderDashboard();
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#tbody tr');
+    if (rows.length) rows[rows.length - 1].scrollIntoView({ behavior: 'smooth' });
+  }, 100);
+}
+
+// ============================================
+// ลบแถว
+// ============================================
+async function delRow(idx) {
+  if (!confirm('ลบ trade นี้? (จะลบจาก Google Sheets ด้วย)')) return;
+  const trade = trades[idx];
+
+  if (SCRIPT_URL && trade._row) {
+    showLoading('กำลังลบ...');
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'deleteTrade', quarter: currentTab, rowIndex: trade._row })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      showToast('✅ ลบจาก Google Sheets แล้ว', 'ok');
+    } catch (err) {
+      showToast('❌ ' + err.message, 'err');
+    } finally {
+      hideLoading();
+    }
+  }
+
+  trades.splice(idx, 1);
+  renderTable();
+  renderDashboard();
+}
+
+// ============================================
+// Switch Tab
+// ============================================
+function switchTab(t) {
+  if (dirtyRows.size > 0) {
+    if (!confirm('มีการแก้ไขที่ยังไม่ได้บันทึก ต้องการเปลี่ยน Quarter ไหม?')) return;
+  }
+  currentTab = t;
+  trades = [];
+  dirtyRows.clear();
+  document.querySelectorAll('.tab').forEach((el, i) =>
+    el.classList.toggle('active', (i === 0 && t === 'q2') || (i === 1 && t === 'q1'))
+  );
+  renderDashboard();
+  renderTable();
+  if (SCRIPT_URL) loadTrades();
+}
+
+// ============================================
+// คำนวณ Stats
+// ============================================
+function calcStats() {
+  const wins = trades.filter(t => t.wl === 'W').length;
+  const losses = trades.filter(t => t.wl === 'L').length;
+  const draws = trades.filter(t => t.wl === 'D').length;
+  const total = wins + losses;
+  const wr = total > 0 ? wins / total * 100 : 0;
+  const gw = trades.filter(t => t.pnlUsd > 0).reduce((s, t) => s + t.pnlUsd, 0);
+  const gl = Math.abs(trades.filter(t => t.pnlUsd < 0).reduce((s, t) => s + t.pnlUsd, 0));
+  const pf = gl > 0 ? gw / gl : 0;
+  const pnl = trades.reduce((s, t) => s + t.pnlUsd, 0);
+  return { wins, losses, draws, total, wr, pf, pnl, gw, gl };
+}
+
+// ============================================
+// Render Dashboard
+// ============================================
+function renderDashboard() {
+  const { wins, losses, draws, total, wr, pf, pnl } = calcStats();
+  const startBal = currentTab === 'q2' ? 1520.89 : 920;
+  const curBal = currentTab === 'q2' ? 576.91 : 1052.68;
+  const withdraw = currentTab === 'q2' ? 857.5 : 1306;
+  const pc = startBal > 0 ? (pnl / startBal * 100) : 0;
+  const pnlCls = pnl >= 0 ? 'pos' : 'neg';
+  const s = n => n >= 0 ? '+' : '';
+  document.getElementById('dashboard').innerHTML = `
+    <div class="kpi"><div class="kpi-label">Current Balance</div><div class="kpi-value info">$${curBal.toFixed(2)}</div><div class="kpi-sub">Start $${startBal} | Withdraw $${withdraw}</div></div>
+    <div class="kpi"><div class="kpi-label">Net P&L (log)</div><div class="kpi-value ${pnlCls}">${s(pnl)}$${pnl.toFixed(2)}</div><div class="kpi-sub">${s(pc)}${pc.toFixed(2)}% of start</div></div>
+    <div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-value ${wr >= 50 ? 'pos' : 'warn'}">${wr.toFixed(1)}%</div><div class="kpi-sub">${wins}W / ${losses}L / ${draws}D / ${total} trades</div></div>
+    <div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-value ${pf >= 1 ? 'pos' : 'neg'}">${pf.toFixed(2)}x</div><div class="kpi-sub">ดีกว่า 1.5 = ระบบดี</div></div>
+    <div class="kpi"><div class="kpi-label">Max DD Rule</div><div class="kpi-value warn">30%</div><div class="kpi-sub">Max Risk/Trade 5%</div></div>
+    <div class="kpi"><div class="kpi-label">Dirty Rows</div><div class="kpi-value ${dirtyRows.size > 0 ? 'warn' : 'pos'}">${dirtyRows.size}</div><div class="kpi-sub">${dirtyRows.size > 0 ? 'รอ Save to Sheet' : 'ข้อมูลอัปเดตแล้ว'}</div></div>
+  `;
+}
+
+// ============================================
+// Helper ต่างๆ
+// ============================================
+function symCls(s) {
+  if (!s) return 'sym-other';
+  if (s.includes('XAU')) return 'sym-xau';
+  if (s.includes('XAG')) return 'sym-xag';
+  if (s.includes('BTC')) return 'sym-btc';
+  if (s.includes('OIL')) return 'sym-oil';
+  if (s.match(/JPY|EUR|GBP|USD/)) return 'sym-usd';
+  return 'sym-other';
+}
+
+function gbCls(g) {
+  const v = (g || '').replace(/[^A-Za-z\+\-]/g, '').toUpperCase();
+  return 'badge badge-' + (v || 'D');
+}
+
+function chartCellHtml(url, idx, field) {
+  const safe = (url || '').replace(/"/g, '&quot;');
+  const isUrl = (url || '').startsWith('http');
+  const imgUrl = isUrl && url.includes('tradingview.com/x/') ? url.replace(/\/$/, '') + '.png' : '';
+  return `<div class="chart-cell">
+    ${isUrl ? `<a class="chart-link" href="${safe}" onclick="event.preventDefault();window.open('${safe}','_blank')">📈 View</a>` : ''}
+    <input class="chart-input" value="${safe}" placeholder="Paste TV URL…"
+      onchange="updField(${idx},'${field}',this.value)"
+      ${imgUrl ? `onmouseenter="showPrev(event,'${imgUrl}','${safe}')" onmouseleave="hidePrev()"` : ''}>
+  </div>`;
+}
+
+function showPrev(e, img, url) {
+  const p = document.getElementById('globalPreview');
+  document.getElementById('previewImg').src = img;
+  document.getElementById('previewUrl').textContent = url;
+  p.style.display = 'block';
+  p.style.left = Math.min(e.clientX + 12, window.innerWidth - 380) + 'px';
+  p.style.top = Math.min(e.clientY + 12, window.innerHeight - 260) + 'px';
+}
+function hidePrev() { document.getElementById('globalPreview').style.display = 'none'; }
+document.addEventListener('mousemove', e => {
+  const p = document.getElementById('globalPreview');
+  if (p.style.display === 'block') {
+    p.style.left = Math.min(e.clientX + 12, window.innerWidth - 380) + 'px';
+    p.style.top = Math.min(e.clientY + 12, window.innerHeight - 260) + 'px';
+  }
+});
+
+// ============================================
+// อัปเดต field ใน memory + mark dirty
+// ============================================
+function updField(idx, field, value) {
+  if (!trades[idx]) return;
+  trades[idx][field] = value;
+  if (trades[idx]._row) dirtyRows.add(trades[idx]._row);
+  renderDashboard();
+}
+
+function updFieldAndSave(idx, field, value) {
+  if (!trades[idx]) return;
+  trades[idx][field] = value;
+  if (trades[idx]._row) {
+    saveCell(trades[idx]._row, field, value);
+  }
+  if (field === 'pnlUsd' || field === 'wl') renderDashboard();
+}
+
+function autoCalc(idx) {
+  const t = trades[idx]; if (!t) return;
+  const en = parseFloat(t.enter), ex = parseFloat(t.exit);
+  if (!isNaN(en) && !isNaN(ex) && en !== 0) {
+    const dir = t.pos === 'BUY' ? 1 : -1;
+    t.pnlPct = +((ex - en) / en * 100 * dir).toFixed(3);
+  }
+  if (t._row) dirtyRows.add(t._row);
+  renderTable();
+  renderDashboard();
+}
+
+// ============================================
+// Render Table
+// ============================================
+// หา ISO week number จาก date string
+function getWeekNum(dateStr) {
+  const d = new Date(cleanDate(dateStr));
+  if (isNaN(d)) return 0;
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  return Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+}
+
+// สร้าง week label row (เส้นแดง)
+function weekSeparatorRow(weekNum, dateStr) {
+  const d = new Date(cleanDate(dateStr));
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // หาวันจันทร์ของสัปดาห์
+  const day = d.getDay() || 7;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - day + 1);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  const label = `WEEK ${weekNum}  •  ${monday.getDate()} ${monthNames[monday.getMonth()]} – ${friday.getDate()} ${monthNames[friday.getMonth()]} ${friday.getFullYear()}`;
+  return `<tr style="border-top:1px solid #4338ca55;background:rgba(99,102,241,0.08)">
+    <td colspan="22" style="padding:5px 12px;font-family:var(--font-display);font-size:10px;color:#818cf8;letter-spacing:.1em">${label}</td>
+  </tr>`;
+}
+
+function renderTable() {
+  const sym = document.getElementById('fSym').value;
+  const grade = document.getElementById('fGrade').value;
+  const wl = document.getElementById('fWL').value;
+  const pos = document.getElementById('fPos').value;
+  const sess = document.getElementById('fSess').value;
+  const q = document.getElementById('fSearch').value.toLowerCase();
+
+  const filtered = trades.filter(t => {
+    if (sym && t.sym !== sym) return false;
+    if (grade && !t.grade.startsWith(grade)) return false;
+    if (wl && t.wl !== wl) return false;
+    if (pos && t.pos !== pos) return false;
+    if (sess && !(t.session || '').includes(sess)) return false;
+    if (q && !(t.setup || '').toLowerCase().includes(q) && !(t.note || '').toLowerCase().includes(q) && !(t.sym || '').toLowerCase().includes(q)) return false;
+    return true;
+  });
+
+  const idxMap = filtered.map(t => trades.indexOf(t));
+  document.getElementById('rowcount').textContent = `${filtered.length} / ${trades.length} แถว`;
+
+  const tbody = document.getElementById('tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="22" style="text-align:center;padding:40px;color:var(--text3)">
+      ${SCRIPT_URL ? 'ไม่พบข้อมูล กด ↻ Reload เพื่อโหลดใหม่' : '⚠ กรุณาใส่ Script URL ด้านบนเพื่อเชื่อมต่อ Google Sheets'}
+    </td></tr>`;
+    return;
+  }
+
+  let lastWeek = -1;
+  const rows = [];
+
+  filtered.forEach((t, fi) => {
+    const ri = idxMap[fi];
+    const pc = t.pnlUsd > 0 ? 'pnl-pos' : t.pnlUsd < 0 ? 'pnl-neg' : '';
+    const isDirty = t._row && dirtyRows.has(t._row);
+    const dateOpen = cleanDate(t.dateOpen);
+    const dateClose = cleanDate(t.dateClose);
+    const weekNum = getWeekNum(t.dateOpen);
+
+    // แทรก week separator เมื่อเปลี่ยนสัปดาห์
+    if (weekNum !== lastWeek && weekNum > 0) {
+      rows.push(weekSeparatorRow(weekNum, t.dateOpen));
+      lastWeek = weekNum;
+    }
+
+    rows.push(`<tr class="${isDirty ? 'dirty-row' : ''}">
+      <td class="delete-col"><button class="del-btn" onclick="delRow(${ri})">🗑</button></td>
+      <td class="num">${t.no}</td>
+      <td contenteditable="true" onblur="updFieldAndSave(${ri},'dateOpen',this.textContent.trim())">${dateOpen}</td>
+      <td contenteditable="true" onblur="updFieldAndSave(${ri},'dateClose',this.textContent.trim())">${dateClose}</td>
+      <td contenteditable="true" onblur="updFieldAndSave(${ri},'dur',this.textContent.trim())">${t.dur}</td>
+      <td><span class="${symCls(t.sym)}" contenteditable="true" onblur="updFieldAndSave(${ri},'sym',this.textContent.trim())">${t.sym}</span></td>
+      <td><span class="${gbCls(t.pos)}" contenteditable="true" onblur="updFieldAndSave(${ri},'pos',this.textContent.trim())">${t.pos}</span></td>
+      <td class="num" contenteditable="true" onblur="updFieldAndSave(${ri},'lot',this.textContent.trim())">${t.lot}</td>
+      <td contenteditable="true" onblur="updFieldAndSave(${ri},'order',this.textContent.trim())">${t.order}</td>
+      <td class="num" contenteditable="true" onblur="updField(${ri},'enter',this.textContent.trim());autoCalc(${ri})">${t.enter}</td>
+      <td contenteditable="true" onblur="updFieldAndSave(${ri},'session',this.textContent.trim())">${t.session}</td>
+      <td class="num" contenteditable="true" onblur="updField(${ri},'exit',this.textContent.trim());autoCalc(${ri})">${t.exit}</td>
+      <td><span class="${gbCls(t.tpsl)}" contenteditable="true" onblur="updFieldAndSave(${ri},'tpsl',this.textContent.trim())">${t.tpsl}</span></td>
+      <td class="${pc} num" contenteditable="true" onblur="updFieldAndSave(${ri},'pnlPct',parseFloat(this.textContent)||0)">${(t.pnlPct||0).toFixed(2)}%</td>
+      <td class="${pc} num" contenteditable="true" onblur="updFieldAndSave(${ri},'pnlUsd',parseFloat(this.textContent)||0)">${(t.pnlUsd||0).toFixed(2)}</td>
+      <td><span class="${gbCls(t.grade)}" contenteditable="true" onblur="updFieldAndSave(${ri},'grade',this.textContent.trim())">${t.grade}</span></td>
+      <td class="setup-cell" contenteditable="true" onblur="updFieldAndSave(${ri},'setup',this.textContent.trim())">${t.setup}</td>
+      <td>${chartCellHtml(t.chartEnter, ri, 'chartEnter')}</td>
+      <td>${chartCellHtml(t.chartExit, ri, 'chartExit')}</td>
+      <td><span class="${gbCls(t.wl)}" contenteditable="true" onblur="updFieldAndSave(${ri},'wl',this.textContent.trim())">${t.wl}</span></td>
+      <td><span class="${gbCls(t.gradeFinal)}" contenteditable="true" onblur="updFieldAndSave(${ri},'gradeFinal',this.textContent.trim())">${t.gradeFinal}</span></td>
+      <td class="note-cell" contenteditable="true" onblur="updFieldAndSave(${ri},'note',this.textContent.trim())">${t.note}</td>
+    </tr>`);
+  });
+
+  tbody.innerHTML = rows.join('');
+}
+
+// ============================================
+// UI Helpers
+// ============================================
+function showLoading(msg) {
+  document.getElementById('loadingText').textContent = msg || 'กำลังโหลด...';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+let toastTimer;
+function showToast(msg, type = 'ok', duration = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function setSyncStatus(type, msg) {
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync-status ' + type;
+  el.textContent = msg;
+}
+
+renderDashboard();
+renderTable();
+</script>
+</body>
+</html>

@@ -225,7 +225,7 @@ td.dirty{background:rgba(245,158,11,.06)!important}
   <th>#</th><th>Date Open</th><th>Date Close</th><th>Dur</th>
   <th>Symbol</th><th>Pos</th><th>Lot</th><th>Order</th>
   <th>Enter</th><th>Session</th><th>Exit</th><th>Exit Type</th>
-  <th>PNL%</th><th>PNL$</th><th style="color:#818cf8">Balance</th><th>Grade</th>
+  <th>PNL%</th><th>PNL$</th><th>Grade</th>
   <th>Setup</th><th>Chart↑</th><th>Chart↓</th>
   <th>W/L</th><th>Grade F.</th><th>Note</th>
 </tr></thead>
@@ -637,16 +637,6 @@ function renderTable() {
     return;
   }
 
-  // คำนวณ running balance โดยใช้ startBal จาก account
-  const startBal = currentTab === 'q2' ? 1520.89 : 920;
-  let runBal = startBal;
-  // สร้าง map ของ running balance ทุก trade (ใช้ trades ทั้งหมดไม่ใช่ filtered)
-  const balMap = {};
-  trades.forEach(t => {
-    runBal += (t.pnlUsd || 0);
-    balMap[t.no] = runBal;
-  });
-
   let lastWeek = -1;
   const rows = [];
   const weekStats = {}; // สะสม stats รายสัปดาห์
@@ -658,8 +648,6 @@ function renderTable() {
     const dateOpen = cleanDate(t.dateOpen);
     const dateClose = cleanDate(t.dateClose);
     const weekNum = getWeekNum(t.dateOpen);
-    const bal = balMap[t.no] || 0;
-    const balCls = bal >= startBal ? 'pnl-pos' : 'pnl-neg';
 
     // สะสม weekly stats
     if (weekNum > 0) {
@@ -692,7 +680,6 @@ function renderTable() {
       <td><span class="${gbCls(t.tpsl)}" contenteditable="true" onblur="updFieldAndSave(${ri},'tpsl',this.textContent.trim())">${t.tpsl}</span></td>
       <td class="${pc} num" contenteditable="true" onblur="updFieldAndSave(${ri},'pnlPct',parseFloat(this.textContent)||0)">${(t.pnlPct||0).toFixed(2)}%</td>
       <td class="${pc} num" contenteditable="true" onblur="updFieldAndSave(${ri},'pnlUsd',parseFloat(this.textContent)||0)">${(t.pnlUsd||0).toFixed(2)}</td>
-      <td class="${balCls} num">$${bal.toFixed(2)}</td>
       <td><span class="${gbCls(t.grade)}" contenteditable="true" onblur="updFieldAndSave(${ri},'grade',this.textContent.trim())">${t.grade}</span></td>
       <td class="setup-cell" contenteditable="true" onblur="updFieldAndSave(${ri},'setup',this.textContent.trim())">${t.setup}</td>
       <td>${chartCellHtml(t.chartEnter, ri, 'chartEnter')}</td>

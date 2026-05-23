@@ -514,15 +514,16 @@ function saveRules() {
 function populateWeekFilter() {
   const sel = document.getElementById('fWeek');
   if (!sel) return;
-  // รวบรวม week numbers จาก trades
-  const weeks = new Set();
+  // รวบรวม weekKey (yyyy-MM-dd ของ Monday) จาก trades
+  const weekMap = {}; // key=weekKey, value=weekNum
   trades.forEach(t => {
     const wk = getWeekNum(t.dateOpen);
-    if (wk > 0) weeks.add(wk);
+    const key = getWeekKey(t.dateOpen);
+    if (key) weekMap[key] = wk;
   });
-  const sorted = [...weeks].sort((a,b) => a-b);
+  const sorted = Object.keys(weekMap).sort();
   sel.innerHTML = '<option value="">All Weeks</option>' +
-    sorted.map(wk => `<option value="${wk}">Week ${wk}</option>`).join('');
+    sorted.map(key => `<option value="${key}">Week ${weekMap[key]} (${key})</option>`).join('');
 }
 
 function filterLatestWeek() {
@@ -677,14 +678,22 @@ function getWeekNum(dateStr) {
   return Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
 }
 
+// หา Monday ของสัปดาห์ที่ date นั้นอยู่ → ใช้เป็น key ของสัปดาห์
+function getWeekKey(dateStr) {
+  const d = new Date(cleanDate(dateStr));
+  if (isNaN(d)) return '';
+  const day = d.getDay(); // 0=Sun, 1=Mon...6=Sat
+  const diff = (day === 0) ? -6 : 1 - day; // ถ้าวันอาทิตย์ ให้นับย้อนไป 6 วัน
+  const mon = new Date(d);
+  mon.setDate(d.getDate() + diff);
+  return mon.toISOString().slice(0, 10); // yyyy-MM-dd ของวันจันทร์
+}
+
 // สร้าง week label row (เส้นแดง)
 function weekSeparatorRow(weekNum, dateStr) {
-  const d = new Date(cleanDate(dateStr));
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  // หาวันจันทร์ของสัปดาห์
-  const day = d.getDay() || 7;
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - day + 1);
+  // ใช้ getWeekKey เพื่อหา Monday จริงๆ ของสัปดาห์นั้น
+  const monday = new Date(getWeekKey(dateStr));
   const friday = new Date(monday);
   friday.setDate(monday.getDate() + 4);
   const label = `WEEK ${weekNum}  •  ${monday.getDate()} ${monthNames[monday.getMonth()]} – ${friday.getDate()} ${monthNames[friday.getMonth()]} ${friday.getFullYear()}`;
@@ -713,7 +722,7 @@ function renderTable() {
     if (wl && t.wl !== wl) return false;
     if (pos && t.pos !== pos) return false;
     if (sess && !(t.session || '').includes(sess)) return false;
-    if (weekFilter && String(getWeekNum(t.dateOpen)) !== weekFilter) return false;
+    if (weekFilter && getWeekKey(t.dateOpen) !== weekFilter) return false;
     if (q && !(t.setup || '').toLowerCase().includes(q) && !(t.note || '').toLowerCase().includes(q) && !(t.sym || '').toLowerCase().includes(q)) return false;
     return true;
   });
@@ -740,20 +749,21 @@ function renderTable() {
     const dateOpen = cleanDate(t.dateOpen);
     const dateClose = cleanDate(t.dateClose);
     const weekNum = getWeekNum(t.dateOpen);
+    const weekKey = getWeekKey(t.dateOpen);
 
     // สะสม weekly stats
-    if (weekNum > 0) {
-      if (!weekStats[weekNum]) weekStats[weekNum] = {pnl:0, win:0, loss:0, total:0};
-      weekStats[weekNum].pnl += (t.pnlUsd || 0);
-      weekStats[weekNum].total++;
-      if (t.wl === 'W') weekStats[weekNum].win++;
-      if (t.wl === 'L') weekStats[weekNum].loss++;
+    if (weekKey) {
+      if (!weekStats[weekKey]) weekStats[weekKey] = {pnl:0, win:0, loss:0, total:0, weekNum:weekNum};
+      weekStats[weekKey].pnl += (t.pnlUsd || 0);
+      weekStats[weekKey].total++;
+      if (t.wl === 'W') weekStats[weekKey].win++;
+      if (t.wl === 'L') weekStats[weekKey].loss++;
     }
 
     // แทรก week separator เมื่อเปลี่ยนสัปดาห์
-    if (weekNum !== lastWeek && weekNum > 0) {
+    if (weekKey && weekKey !== lastWeek) {
       rows.push(weekSeparatorRow(weekNum, t.dateOpen));
-      lastWeek = weekNum;
+      lastWeek = weekKey;
     }
 
     rows.push(`<tr class="${isDirty ? 'dirty-row' : ''}">
@@ -785,10 +795,10 @@ function renderTable() {
   tbody.innerHTML = rows.join('');
 
   // อัปเดต weekly summary rows
-  Object.keys(weekStats).forEach(wk => {
-    const el = document.getElementById('wsumtxt-' + wk);
+  Object.keys(weekStats).forEach(key => {
+    const s = weekStats[key];
+    const el = document.getElementById('wsumtxt-' + s.weekNum);
     if (!el) return;
-    const s = weekStats[wk];
     const wr = s.total > 0 ? (s.win / (s.win + s.loss) * 100) : 0;
     const pnlCls = s.pnl >= 0 ? 'color:#22c55e' : 'color:#ef4444';
     const sign = s.pnl >= 0 ? '+' : '';

@@ -181,18 +181,17 @@ td.dirty{background:rgba(245,158,11,.06)!important}
 
 <!-- MM BANNER -->
 <div class="mm-banner">
-  <div class="mm-title">⚠ TRADING MM RULES — #218510791</div>
-  <div class="mm-rules">
-    <span class="mm-rule">Max Drawdown 30%</span>
-    <span class="mm-rule">Max Risk/Trade 5%</span>
-    <span class="mm-rule">Max Lot 0.10</span>
-    <span class="mm-rule">Monthly Target +5%</span>
-    <span class="mm-rule">Weekly Loss $20-30</span>
-    <span class="mm-rule">Grade A–B Only</span>
-    <span class="mm-rule">No FOMO</span>
-    <span class="mm-rule">No Counter-Trend</span>
-    <span class="mm-rule">No News Trading</span>
-    <span class="mm-rule">1 Pair at a time</span>
+  <div class="mm-title" style="display:flex;align-items:center;justify-content:space-between">
+    <span>⚠ TRADING MM RULES — #218510791</span>
+    <button onclick="toggleEditRules()" id="editRulesBtn" style="font-size:10px;padding:2px 8px;background:#312e81;border:1px solid #4338ca;color:#a5b4fc;border-radius:4px;cursor:pointer;font-family:var(--font-display)">✏ EDIT</button>
+  </div>
+  <div class="mm-rules" id="mmRulesDisplay"></div>
+  <div id="mmRulesEditor" style="display:none;margin-top:8px">
+    <textarea id="mmRulesText" style="width:100%;background:#1e1b4b;border:1px solid #4338ca55;color:#c7d2fe;font-size:11px;font-family:var(--font-body);padding:8px;border-radius:6px;resize:none;min-height:80px;outline:none" placeholder="พิมพ์กฎแต่ละข้อคั่นด้วย Enter หรือ | "></textarea>
+    <div style="display:flex;gap:6px;margin-top:6px">
+      <button onclick="saveRules()" style="font-size:11px;padding:3px 12px;background:#4338ca;border:none;color:#c7d2fe;border-radius:4px;cursor:pointer">💾 Save</button>
+      <button onclick="toggleEditRules()" style="font-size:11px;padding:3px 12px;background:transparent;border:1px solid #4338ca55;color:#818cf8;border-radius:4px;cursor:pointer">Cancel</button>
+    </div>
   </div>
 </div>
 
@@ -209,7 +208,9 @@ td.dirty{background:rgba(245,158,11,.06)!important}
   <select id="fWL" onchange="renderTable()"><option value="">Win/Loss</option><option value="W">Win</option><option value="L">Loss</option><option value="D">Draw</option></select>
   <select id="fPos" onchange="renderTable()"><option value="">Position</option><option>BUY</option><option>SELL</option></select>
   <select id="fSess" onchange="renderTable()"><option value="">Session</option><option>ASIA</option><option>LONDON</option><option>US</option></select>
-  <input type="text" id="fSearch" placeholder="🔍 ค้นหา..." onkeyup="renderTable()" style="flex:1;min-width:140px;max-width:200px">
+  <select id="fWeek" onchange="renderTable()" style="min-width:110px"><option value="">All Weeks</option></select>
+  <button class="btn" onclick="filterLatestWeek()" style="white-space:nowrap;font-size:10px">📅 Week ล่าสุด</button>
+  <input type="text" id="fSearch" placeholder="🔍 ค้นหา..." onkeyup="renderTable()" style="flex:1;min-width:120px;max-width:180px">
   <button class="btn btn-reload" onclick="loadTrades()">↻ Reload</button>
   <button class="btn btn-save" onclick="saveAllToSheet()" id="btnSave">💾 Save to Sheet</button>
   <button class="btn btn-primary" onclick="addRow()">＋ เพิ่มแถว</button>
@@ -258,6 +259,7 @@ function cleanDate(raw) {
 
 // โหลด URL จาก localStorage ถ้ามี
 window.onload = function() {
+  loadRules();
   if (SCRIPT_URL) {
     document.getElementById('scriptUrl').value = SCRIPT_URL;
     document.getElementById('setupBanner').style.display = 'none';
@@ -304,6 +306,8 @@ async function loadTrades() {
 
     setSyncStatus('ok', `✅ โหลดแล้ว ${trades.length} รายการ`);
     showToast(`✅ โหลด ${trades.length} trades จาก Google Sheets`, 'ok');
+    await fetchAccountSummary();
+    populateWeekFilter();
     renderDashboard();
     renderTable();
 
@@ -461,6 +465,78 @@ function switchTab(t) {
 // ============================================
 // คำนวณ Stats
 // ============================================
+// ============================================
+// MM RULES — EDITABLE
+// ============================================
+const DEFAULT_RULES = ['Max Drawdown 30%','Max Risk/Trade 5%','Max Lot 0.10','Monthly Target +5%','Weekly Loss $20-30','Grade A–B Only','No FOMO','No Counter-Trend','No News Trading','1 Pair at a time'];
+
+function loadRules() {
+  const saved = localStorage.getItem('mm_rules');
+  const rules = saved ? JSON.parse(saved) : DEFAULT_RULES;
+  renderRules(rules);
+  if (document.getElementById('mmRulesText')) {
+    document.getElementById('mmRulesText').value = rules.join('
+');
+  }
+}
+
+function renderRules(rules) {
+  const el = document.getElementById('mmRulesDisplay');
+  if (!el) return;
+  el.innerHTML = rules.map(r => `<span class="mm-rule">${r}</span>`).join('');
+}
+
+function toggleEditRules() {
+  const editor = document.getElementById('mmRulesEditor');
+  const display = document.getElementById('mmRulesDisplay');
+  const btn = document.getElementById('editRulesBtn');
+  const isEditing = editor.style.display !== 'none';
+  editor.style.display = isEditing ? 'none' : 'block';
+  display.style.display = isEditing ? 'flex' : 'none';
+  btn.textContent = isEditing ? '✏ EDIT' : '✕ CLOSE';
+  if (!isEditing) {
+    const saved = localStorage.getItem('mm_rules');
+    const rules = saved ? JSON.parse(saved) : DEFAULT_RULES;
+    document.getElementById('mmRulesText').value = rules.join('
+');
+  }
+}
+
+function saveRules() {
+  const text = document.getElementById('mmRulesText').value;
+  const rules = text.split(/[
+|]/).map(r=>r.trim()).filter(r=>r.length>0);
+  localStorage.setItem('mm_rules', JSON.stringify(rules));
+  renderRules(rules);
+  toggleEditRules();
+  showToast('✅ บันทึกกฎแล้ว', 'ok', 1500);
+}
+
+// ============================================
+// WEEK FILTER
+// ============================================
+function populateWeekFilter() {
+  const sel = document.getElementById('fWeek');
+  if (!sel) return;
+  // รวบรวม week numbers จาก trades
+  const weeks = new Set();
+  trades.forEach(t => {
+    const wk = getWeekNum(t.dateOpen);
+    if (wk > 0) weeks.add(wk);
+  });
+  const sorted = [...weeks].sort((a,b) => a-b);
+  sel.innerHTML = '<option value="">All Weeks</option>' +
+    sorted.map(wk => `<option value="${wk}">Week ${wk}</option>`).join('');
+}
+
+function filterLatestWeek() {
+  const sel = document.getElementById('fWeek');
+  if (!sel || sel.options.length <= 1) return;
+  // เลือก option สุดท้าย (week ล่าสุด)
+  sel.selectedIndex = sel.options.length - 1;
+  renderTable();
+}
+
 function calcStats() {
   const wins = trades.filter(t => t.wl === 'W').length;
   const losses = trades.filter(t => t.wl === 'L').length;
@@ -477,16 +553,34 @@ function calcStats() {
 // ============================================
 // Render Dashboard
 // ============================================
+// เก็บ account summary จาก Sheet
+let accountSummary = { startBal: 0, curBal: 0, withdraw: 0 };
+
+async function fetchAccountSummary() {
+  if (!SCRIPT_URL) return;
+  try {
+    const res = await fetch(`${SCRIPT_URL}?action=getAccount&quarter=${currentTab}&t=${Date.now()}`);
+    const data = await res.json();
+    if (data.success && data.summary) {
+      accountSummary = {
+        startBal: data.summary.startBal || 0,
+        curBal: data.summary.curBal || 0,
+        withdraw: data.summary.withdraw || 0,
+      };
+    }
+  } catch(e) { console.log('Account fetch error:', e); }
+}
+
 function renderDashboard() {
   const { wins, losses, draws, total, wr, pf, pnl } = calcStats();
-  const startBal = currentTab === 'q2' ? 1520.89 : 920;
-  const curBal = currentTab === 'q2' ? 576.91 : 1052.68;
-  const withdraw = currentTab === 'q2' ? 857.5 : 1306;
+  const startBal = accountSummary.startBal || (currentTab === 'q2' ? 1520.89 : 920);
+  const curBal = accountSummary.curBal || (currentTab === 'q2' ? 576.91 : 1052.68);
+  const withdraw = accountSummary.withdraw || (currentTab === 'q2' ? 857.5 : 1306);
   const pc = startBal > 0 ? (pnl / startBal * 100) : 0;
   const pnlCls = pnl >= 0 ? 'pos' : 'neg';
   const s = n => n >= 0 ? '+' : '';
   document.getElementById('dashboard').innerHTML = `
-    <div class="kpi"><div class="kpi-label">Current Balance</div><div class="kpi-value info">$${curBal.toFixed(2)}</div><div class="kpi-sub">Start $${startBal} | Withdraw $${withdraw}</div></div>
+    <div class="kpi"><div class="kpi-label">Current Balance</div><div class="kpi-value info">$${curBal.toFixed(2)}</div><div class="kpi-sub">Start $${startBal.toFixed(2)} | Withdraw $${withdraw.toFixed(2)}</div></div>
     <div class="kpi"><div class="kpi-label">Net P&L (log)</div><div class="kpi-value ${pnlCls}">${s(pnl)}$${pnl.toFixed(2)}</div><div class="kpi-sub">${s(pc)}${pc.toFixed(2)}% of start</div></div>
     <div class="kpi"><div class="kpi-label">Win Rate</div><div class="kpi-value ${wr >= 50 ? 'pos' : 'warn'}">${wr.toFixed(1)}%</div><div class="kpi-sub">${wins}W / ${losses}L / ${draws}D / ${total} trades</div></div>
     <div class="kpi"><div class="kpi-label">Profit Factor</div><div class="kpi-value ${pf >= 1 ? 'pos' : 'neg'}">${pf.toFixed(2)}x</div><div class="kpi-sub">ดีกว่า 1.5 = ระบบดี</div></div>
@@ -616,12 +710,14 @@ function renderTable() {
   const sess = document.getElementById('fSess').value;
   const q = document.getElementById('fSearch').value.toLowerCase();
 
+  const weekFilter = document.getElementById('fWeek') ? document.getElementById('fWeek').value : '';
   const filtered = trades.filter(t => {
     if (sym && t.sym !== sym) return false;
     if (grade && !t.grade.startsWith(grade)) return false;
     if (wl && t.wl !== wl) return false;
     if (pos && t.pos !== pos) return false;
     if (sess && !(t.session || '').includes(sess)) return false;
+    if (weekFilter && String(getWeekNum(t.dateOpen)) !== weekFilter) return false;
     if (q && !(t.setup || '').toLowerCase().includes(q) && !(t.note || '').toLowerCase().includes(q) && !(t.sym || '').toLowerCase().includes(q)) return false;
     return true;
   });

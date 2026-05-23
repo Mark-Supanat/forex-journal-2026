@@ -474,10 +474,8 @@ function loadRules() {
   const saved = localStorage.getItem('mm_rules');
   const rules = saved ? JSON.parse(saved) : DEFAULT_RULES;
   renderRules(rules);
-  if (document.getElementById('mmRulesText')) {
-    document.getElementById('mmRulesText').value = rules.join('
-');
-  }
+  const ta = document.getElementById('mmRulesText');
+  if (ta) ta.value = rules.join(String.fromCharCode(10));
 }
 
 function renderRules(rules) {
@@ -497,15 +495,13 @@ function toggleEditRules() {
   if (!isEditing) {
     const saved = localStorage.getItem('mm_rules');
     const rules = saved ? JSON.parse(saved) : DEFAULT_RULES;
-    document.getElementById('mmRulesText').value = rules.join('
-');
+    document.getElementById('mmRulesText').value = rules.join(String.fromCharCode(10));
   }
 }
 
 function saveRules() {
   const text = document.getElementById('mmRulesText').value;
-  const rules = text.split(/[
-|]/).map(r=>r.trim()).filter(r=>r.length>0);
+  const rules = text.split(/[\n|]/).map(r=>r.trim()).filter(r=>r.length>0);
   localStorage.setItem('mm_rules', JSON.stringify(rules));
   renderRules(rules);
   toggleEditRules();
